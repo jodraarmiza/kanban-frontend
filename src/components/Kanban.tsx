@@ -32,21 +32,49 @@ const Kanban: React.FC<KanbanProps> = ({ tasks, onAddTask, onDeleteTask, onMoveT
     }
   };
 
-  const addTask = () => {
+  const addTask = async () => {
     if (newTask.trim() === "") return;
-    const today = new Date().toISOString().split("T")[0];
-
-    const taskObject: Task = {
-      id: Date.now().toString(),
+  
+    const taskObject = {
       content: newTask,
       status: "todo",
-      createdAt: today,
-      deadline: today,
+      createdAt: new Date().toISOString(),
+      deadline: new Date().toISOString(),
     };
-
-    onAddTask(taskObject);
-    setNewTask("");
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/tasks`, {
+          method: "GET",
+          credentials: "include",
+        });
+    
+        if (!response.ok) throw new Error("Gagal mengambil data tugas");
+    
+        const data = await response.json();
+        onAddTask(data); // ⬅️ Pastikan fungsi onAddTask dapat menerima hasil fetch
+      } catch (error) {
+        console.error("Error fetching tasks:", error);
+      }
+    };
+    
+  
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(taskObject),
+      });
+  
+      if (!response.ok) throw new Error("Gagal menambahkan tugas");
+  
+      setNewTask("");
+      fetchTasks();
+    } catch (error) {
+      console.error("Error adding task:", error);
+    }
   };
+  
 
   const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {

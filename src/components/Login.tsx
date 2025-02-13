@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Box, Heading, Input, Button, VStack, useToast, Text, Container 
+  Box, Heading, Input, Button, VStack, Text, Container, useToast
 } from "@chakra-ui/react";
 
 interface LoginProps {
@@ -12,41 +12,48 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const toast = useToast();
+  const toast = useToast(); 
 
-  const handleLogin = () => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const user = users.find(
-      (user: any) => user.username === username && user.password === password
-    );
+  const handleLogin = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (user) {
+      if (!response.ok) throw new Error("Login gagal");
+
+      const data = await response.json();
+      localStorage.setItem("currentUser", data.username);
       localStorage.setItem("isAuthenticated", "true");
-      setIsAuthenticated(true);
+      setIsAuthenticated(true); // ✅ Menandakan user sudah login
 
       toast({
         title: "Login Berhasil",
-        description: "Selamat datang!",
+        description: `Selamat datang, ${username}!`,
         status: "success",
-        duration: 2000,
+        duration: 3000,
         isClosable: true,
       });
 
-      setTimeout(() => {
-        navigate("/kanban");
-      }, 1000);
-    } else {
+      navigate("/kanban");
+    } catch (error) {
+      console.error("Error saat login:", error);
+
       toast({
         title: "Login Gagal",
-        description: "Username atau password salah.",
+        description: "Periksa kembali username atau password Anda.",
         status: "error",
-        duration: 2000,
+        duration: 3000,
         isClosable: true,
       });
+
+      setIsAuthenticated(false); // ✅ Tetap false jika login gagal
     }
   };
 
-  // ✅ Fungsi untuk menangani tekan tombol Enter
   const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       handleLogin();
@@ -64,18 +71,17 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          onKeyDown={handleKeyPress} // ✅ Dapat menekan Enter untuk login
+          onKeyDown={handleKeyPress} 
         />
         <Input
           placeholder="Password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={handleKeyPress} // ✅ Dapat menekan Enter untuk login
+          onKeyDown={handleKeyPress} 
         />
         <Button onClick={handleLogin} colorScheme="blue" width="100%">Login</Button>
 
-        {/* ✅ Tambahkan teks dan tombol Register */}
         <Text fontSize="sm" mt={3}>
           Belum punya akun?{" "}
           <Text as="span" color="blue.500" cursor="pointer" fontWeight="bold" onClick={() => navigate("/register")}>

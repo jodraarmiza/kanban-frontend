@@ -44,18 +44,24 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isAuthenticated }) => {
   }, [isAuthenticated, navigate]);
   
   useEffect(() => {
-    const currentUser = localStorage.getItem("currentUser") || "User123";
-    const storedData = localStorage.getItem("tasksByUser");
-
-    if (storedData) {
-        try {
-            const parsedData = JSON.parse(storedData);
-            setTasksByDate(parsedData[currentUser] || {}); // ✅ Ambil data yang benar
-        } catch (error) {
-            console.error("Error parsing localStorage data:", error);
-        }
-    }
-}, [username]); // ✅ Jalankan ulang ketika user berubah
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/tasks`, {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error("Gagal mengambil data tugas");
+        
+        const data = await response.json();
+        setTasksByDate(data);
+      } catch (error) {
+        console.error("Error fetching tasks:", error);
+      }
+    };
+    
+    fetchTasks();
+  }, [username]);
+  
 
 
   useEffect(() => {
@@ -177,6 +183,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isAuthenticated }) => {
   const totalTasks = tasksForCurrentDate.length;
   const doneTasks = tasksForCurrentDate.filter(task => task.status === "done").length;
   const progressPercentage = totalTasks > 0 ? (doneTasks / totalTasks) * 100 : 0;
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser");
+    navigate("/login", { replace: true });
+  };
+  
 
   return (
     <Box p={5} textAlign="center">
@@ -244,7 +255,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ isAuthenticated }) => {
             <Text mt={2} fontSize="sm" textAlign="center">
               {doneTasks} dari {totalTasks} tugas selesai dikerjakan
             </Text>
-            <Button mt={4} colorScheme="red" onClick={() => {localStorage.removeItem("currentUser"); navigate("/login", { replace: true }); }}>Logout</Button>
+            <Button mt={4} colorScheme="red" onClick={handleLogout}>
+  Logout
+</Button>
+
           </DrawerBody>
         </DrawerContent>
       </Drawer>
